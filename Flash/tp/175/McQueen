@@ -1,0 +1,743 @@
+-- leaked by @ljsvrpt GNGGGGGG
+-- Edited by nuko175
+-- [[ Services ]]
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local HttpService = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ==================== CONFIG SYSTEM ====================
+local configFile = "nuko175_FlashTP_Config.json"
+local Config = {
+    flashEnabled = true,
+    giantEnabled = false,
+    zeroGravityEnabled = false,
+    alignCameraEnabled = false,
+    speedEnabled = false,
+}
+
+-- Load Config on Start
+if isfile and isfile(configFile) then
+    local success, decoded = pcall(function()
+        return HttpService:JSONDecode(readfile(configFile))
+    end)
+    if success and decoded then
+        Config = decoded
+    end
+end
+
+local function saveConfig()
+    if writefile then
+        pcall(function()
+            writefile(configFile, HttpService:JSONEncode(Config))
+        end)
+    end
+end
+
+-- [[ ScreenGui ]]
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "nuko175_FlashTP"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = playerGui
+
+-- [[ Main Frame - Compacto ]]
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 155, 0, 345)
+Main.Position = UDim2.new(0.5, -77, 0.5, -172)
+Main.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+Main.BorderSizePixel = 0
+Main.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = Main
+
+-- Moving RED Outline Animation
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2
+MainStroke.Color = Color3.fromRGB(255, 0, 0)
+MainStroke.Parent = Main
+
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255, 80, 80)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 0, 0))
+})
+StrokeGradient.Rotation = 0
+StrokeGradient.Parent = MainStroke
+
+task.spawn(function()
+    while MainStroke and MainStroke.Parent do
+        StrokeGradient.Rotation = (StrokeGradient.Rotation + 1.5) % 360
+        task.wait(0.025)
+    end
+end)
+
+-- ==================== SNOW BACKGROUND ====================
+local snowHolder = Instance.new("Frame")
+snowHolder.Name = "SnowHolder"
+snowHolder.Size = UDim2.new(1, 0, 1, 0)
+snowHolder.Position = UDim2.new(0, 0, 0, 0)
+snowHolder.BackgroundTransparency = 1
+snowHolder.ClipsDescendants = true
+snowHolder.ZIndex = 1
+snowHolder.Parent = Main
+
+local function spawnSnow()
+    local dot = Instance.new("Frame")
+    local size = math.random(2, 3)
+    dot.Size = UDim2.new(0, size, 0, size)
+    dot.Position = UDim2.new(math.random(), 0, -0.05, 0)
+    dot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    dot.BackgroundTransparency = math.random(30, 50) / 100
+    dot.BorderSizePixel = 0
+    dot.ZIndex = 1
+    dot.Parent = snowHolder
+   
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+   
+    local fallTime = math.random(4, 7)
+    local drift = math.random(-20, 20)
+   
+    TweenService:Create(dot, TweenInfo.new(fallTime, Enum.EasingStyle.Linear), {
+        Position = UDim2.new(dot.Position.X.Scale, drift, 1.1, 0)
+    }):Play()
+   
+    task.delay(fallTime, function()
+        if dot and dot.Parent then dot:Destroy() end
+    end)
+end
+
+task.spawn(function()
+    while snowHolder.Parent do
+        spawnSnow()
+        task.wait(0.1)
+    end
+end)
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 46)
+TitleBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+TitleBar.BackgroundTransparency = 0.65
+TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 2
+TitleBar.Parent = Main
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, -10, 0, 18)
+TitleLabel.Position = UDim2.new(0, 5, 0, 5)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "nuko175 Flash TP"
+TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 12
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.ZIndex = 2
+TitleLabel.Parent = TitleBar
+
+-- FPS + Ping Counter
+local StatsLabel = Instance.new("TextLabel")
+StatsLabel.Name = "StatsLabel"
+StatsLabel.Size = UDim2.new(1, -10, 0, 14)
+StatsLabel.Position = UDim2.new(0, 5, 0, 26)
+StatsLabel.BackgroundTransparency = 1
+StatsLabel.Text = "FPS: 00 | Ping: 000"
+StatsLabel.TextColor3 = Color3.new(1, 1, 1)
+StatsLabel.Font = Enum.Font.GothamBold
+StatsLabel.TextSize = 9
+StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatsLabel.ZIndex = 2
+StatsLabel.Parent = TitleBar
+
+-- Dragging Logic
+local dragging, dragStart, startPos = false, nil, nil
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- Content Frame
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -10, 1, -60)
+Content.Position = UDim2.new(0, 5, 0, 52)
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.ZIndex = 2
+Content.Parent = Main
+
+-- Button Creation Function
+local function createButton(yOffset, text, toggleVar, isAlignCamera)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 28)
+    button.Position = UDim2.new(0, 0, 0, yOffset)
+    button.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+    button.AutoButtonColor = false
+    button.Text = ""
+    button.BorderSizePixel = 0
+    button.ZIndex = 2
+    button.Parent = Content
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = button
+
+    local btnLabel = Instance.new("TextLabel")
+    btnLabel.Size = UDim2.new(1, 0, 1, 0)
+    btnLabel.Position = UDim2.new(0, 0, 0, 0)
+    btnLabel.BackgroundTransparency = 1
+    btnLabel.TextColor3 = Color3.new(1, 1, 1)
+    btnLabel.Font = Enum.Font.GothamBold
+    btnLabel.TextSize = 10.5
+    btnLabel.TextXAlignment = Enum.TextXAlignment.Center
+    btnLabel.TextYAlignment = Enum.TextYAlignment.Center
+    btnLabel.ZIndex = 2
+    btnLabel.Parent = button
+
+    if isAlignCamera then
+        btnLabel.Text = "ALIGN CAM"
+    else
+        btnLabel.Text = text .. (_G[toggleVar] and " ON" or " OFF")
+    end
+
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(210, 40, 40)}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(170, 0, 0)}):Play()
+    end)
+
+    button.MouseButton1Click:Connect(function()
+        _G[toggleVar] = not _G[toggleVar]
+        local isOn = _G[toggleVar]
+  
+        if isAlignCamera then
+            btnLabel.Text = "ALIGN CAM"
+        else
+            btnLabel.Text = text .. (isOn and " ON" or " OFF")
+        end
+  
+        local newColor = isOn and Color3.fromRGB(170, 0, 0) or Color3.fromRGB(120, 0, 0)
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = newColor}):Play()
+  
+        Config[toggleVar] = isOn
+        saveConfig()
+    end)
+    return button
+end
+
+-- ==================== SPEED SYSTEM (EDITABLE) ====================
+local SPEED = 28
+local speedConnection = nil
+local speedEnabled = Config.speedEnabled
+
+local function getCharSpeed()
+    local c = player.Character or player.CharacterAdded:Wait()
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    local hum = c:FindFirstChildWhichIsA("Humanoid")
+    return c, hrp, hum
+end
+
+local function getMoveDirSpeed()
+    local _, _, hum = getCharSpeed()
+    if not hum then return Vector3.zero end
+    local move = hum.MoveDirection
+    return move.Magnitude > 0.1 and move.Unit or Vector3.zero
+end
+
+local function startSpeed()
+    if speedConnection then return end
+    speedConnection = RunService.Heartbeat:Connect(function()
+        if not speedEnabled then return end
+        local _, hrp, hum = getCharSpeed()
+        if not hrp or not hum then return end
+        local dir = getMoveDirSpeed()
+        if dir.Magnitude > 0 then
+            hrp.AssemblyLinearVelocity = Vector3.new(
+                dir.X * SPEED,
+                hrp.AssemblyLinearVelocity.Y,
+                dir.Z * SPEED
+            )
+        end
+    end)
+end
+
+local function stopSpeed()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+end
+
+local function toggleSpeed()
+    speedEnabled = not speedEnabled
+    Config.speedEnabled = speedEnabled
+    saveConfig()
+    
+    if speedEnabled then
+        startSpeed()
+        if speedButtonLabel then
+            speedButtonLabel.Text = "SPEED: ON"
+        end
+        TweenService:Create(speedButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 0)}):Play()
+    else
+        stopSpeed()
+        if speedButtonLabel then
+            speedButtonLabel.Text = "SPEED: OFF"
+        end
+        TweenService:Create(speedButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(120, 0, 0)}):Play()
+    end
+end
+
+-- Variables
+_G.flashEnabled = Config.flashEnabled
+_G.giantEnabled = Config.giantEnabled
+_G.zeroGravityEnabled = Config.zeroGravityEnabled
+_G.alignCameraEnabled = Config.alignCameraEnabled
+
+-- Create Buttons
+createButton(0, "FLASH:", "flashEnabled", false)
+createButton(32, "GIANT:", "giantEnabled", false)
+createButton(64, "GRAVITY:", "zeroGravityEnabled", false)
+
+-- Steal Progress Bar
+local StealBarBG = Instance.new("Frame")
+StealBarBG.Name = "StealBarBG"
+StealBarBG.Size = UDim2.new(1, 0, 0, 12)
+StealBarBG.Position = UDim2.new(0, 0, 0, 100)
+StealBarBG.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+StealBarBG.BorderSizePixel = 0
+StealBarBG.ZIndex = 2
+StealBarBG.Parent = Content
+
+local BGCorner = Instance.new("UICorner")
+BGCorner.CornerRadius = UDim.new(0, 6)
+BGCorner.Parent = StealBarBG
+
+local StealInner = Instance.new("Frame")
+StealInner.Size = UDim2.new(1, -6, 1, -2)
+StealInner.Position = UDim2.new(0, 3, 0, 1)
+StealInner.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+StealInner.BorderSizePixel = 0
+StealInner.ZIndex = 2
+StealInner.Parent = StealBarBG
+
+local InnerCorner = Instance.new("UICorner")
+InnerCorner.CornerRadius = UDim.new(1, 0)
+InnerCorner.Parent = StealInner
+
+local StealFill = Instance.new("Frame")
+StealFill.Name = "Fill"
+StealFill.Size = UDim2.new(0, 0, 1, 0)
+StealFill.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+StealFill.BorderSizePixel = 0
+StealFill.ZIndex = 2
+StealFill.Parent = StealInner
+
+local FillCorner = Instance.new("UICorner")
+FillCorner.CornerRadius = UDim.new(1, 0)
+FillCorner.Parent = StealFill
+
+-- Slider Area
+local SliderArea = Instance.new("Frame")
+SliderArea.Size = UDim2.new(1, 0, 0, 36)
+SliderArea.Position = UDim2.new(0, 0, 0, 118)
+SliderArea.BackgroundTransparency = 1
+SliderArea.ZIndex = 2
+SliderArea.Parent = Content
+
+local TriggerLabel = Instance.new("TextLabel")
+TriggerLabel.Size = UDim2.new(1, 0, 0, 12)
+TriggerLabel.BackgroundTransparency = 1
+TriggerLabel.Text = "TRIGGER: 91%"
+TriggerLabel.TextColor3 = Color3.new(1, 1, 1)
+TriggerLabel.Font = Enum.Font.GothamBold
+TriggerLabel.TextSize = 9
+TriggerLabel.TextXAlignment = Enum.TextXAlignment.Left
+TriggerLabel.ZIndex = 2
+TriggerLabel.Parent = SliderArea
+
+local SliderTrack = Instance.new("Frame")
+SliderTrack.Size = UDim2.new(1, 0, 0, 5)
+SliderTrack.Position = UDim2.new(0, 0, 0, 18)
+SliderTrack.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+SliderTrack.BorderSizePixel = 0
+SliderTrack.ZIndex = 2
+SliderTrack.Parent = SliderArea
+
+local TrackCorner = Instance.new("UICorner")
+TrackCorner.CornerRadius = UDim.new(1, 0)
+TrackCorner.Parent = SliderTrack
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Size = UDim2.new(0.91, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+SliderFill.BorderSizePixel = 0
+SliderFill.ZIndex = 2
+SliderFill.Parent = SliderTrack
+
+local SFillCorner = Instance.new("UICorner")
+SFillCorner.CornerRadius = UDim.new(1, 0)
+SFillCorner.Parent = SliderFill
+
+local SliderKnob = Instance.new("TextButton")
+SliderKnob.Size = UDim2.new(0, 12, 0, 12)
+SliderKnob.Position = UDim2.new(0.91, 0, 0.5, 0)
+SliderKnob.AnchorPoint = Vector2.new(0.5, 0.5)
+SliderKnob.BackgroundColor3 = Color3.new(1, 1, 1)
+SliderKnob.BorderSizePixel = 0
+SliderKnob.Text = ""
+SliderKnob.ZIndex = 3
+SliderKnob.Parent = SliderTrack
+
+local KnobCorner = Instance.new("UICorner")
+KnobCorner.CornerRadius = UDim.new(1, 0)
+KnobCorner.Parent = SliderKnob
+
+-- ALIGN CAMERA Button
+local AlignButton = createButton(160, "ALIGN CAM", "alignCameraEnabled", true)
+
+-- ==================== SPEED BUTTON (VERDE ON / ROJO OFF) ====================
+local speedButton = Instance.new("TextButton")
+speedButton.Size = UDim2.new(1, 0, 0, 28)
+speedButton.Position = UDim2.new(0, 0, 0, 192)
+speedButton.BackgroundColor3 = speedEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(120, 0, 0)
+speedButton.AutoButtonColor = false
+speedButton.Text = ""
+speedButton.BorderSizePixel = 0
+speedButton.ZIndex = 2
+speedButton.Parent = Content
+
+local speedBtnCorner = Instance.new("UICorner")
+speedBtnCorner.CornerRadius = UDim.new(0, 6)
+speedBtnCorner.Parent = speedButton
+
+local speedButtonLabel = Instance.new("TextLabel")
+speedButtonLabel.Size = UDim2.new(1, 0, 1, 0)
+speedButtonLabel.Position = UDim2.new(0, 0, 0, 0)
+speedButtonLabel.BackgroundTransparency = 1
+speedButtonLabel.TextColor3 = Color3.new(1, 1, 1)
+speedButtonLabel.Font = Enum.Font.GothamBold
+speedButtonLabel.TextSize = 10.5
+speedButtonLabel.TextXAlignment = Enum.TextXAlignment.Center
+speedButtonLabel.TextYAlignment = Enum.TextYAlignment.Center
+speedButtonLabel.ZIndex = 2
+speedButtonLabel.Text = speedEnabled and "SPEED: ON" or "SPEED: OFF"
+speedButtonLabel.Parent = speedButton
+
+-- Speed Value Box (EDITABLE)
+local speedValueBox = Instance.new("TextBox")
+speedValueBox.Size = UDim2.new(0.5, -4, 0, 24)
+speedValueBox.Position = UDim2.new(0.5, 2, 0, 224)
+speedValueBox.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+speedValueBox.Text = tostring(SPEED)
+speedValueBox.PlaceholderText = "VAL"
+speedValueBox.TextColor3 = Color3.new(1, 1, 1)
+speedValueBox.TextSize = 10
+speedValueBox.Font = Enum.Font.GothamBold
+speedValueBox.ClearTextOnFocus = false
+speedValueBox.ZIndex = 2
+speedValueBox.Parent = Content
+
+local speedValueCorner = Instance.new("UICorner")
+speedValueCorner.CornerRadius = UDim.new(0, 6)
+speedValueCorner.Parent = speedValueBox
+
+speedValueBox.FocusLost:Connect(function(enterPressed)
+    local newValue = tonumber(speedValueBox.Text)
+    if newValue and newValue > 0 and newValue < 500 then
+        SPEED = newValue
+        speedValueBox.Text = tostring(SPEED)
+        if speedEnabled then
+            -- ya se aplica automáticamente
+        end
+    else
+        speedValueBox.Text = tostring(SPEED)
+    end
+end)
+
+speedButton.MouseEnter:Connect(function()
+    local hoverColor = speedEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(210, 40, 40)
+    TweenService:Create(speedButton, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
+end)
+
+speedButton.MouseLeave:Connect(function()
+    local leaveColor = speedEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(120, 0, 0)
+    TweenService:Create(speedButton, TweenInfo.new(0.15), {BackgroundColor3 = leaveColor}):Play()
+end)
+
+speedButton.MouseButton1Click:Connect(function()
+    toggleSpeed()
+end)
+
+-- ==================== DISCORD BUTTON (CON TU ENLACE) ====================
+local DiscordButton = Instance.new("TextButton")
+DiscordButton.Size = UDim2.new(1, 0, 0, 24)
+DiscordButton.Position = UDim2.new(0, 0, 1, -28)
+DiscordButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+DiscordButton.Text = "nuko175 | discord.gg/DdmrBFcCU"
+DiscordButton.TextColor3 = Color3.new(1, 1, 1)
+DiscordButton.Font = Enum.Font.GothamBold
+DiscordButton.TextSize = 8
+DiscordButton.TextScaled = false
+DiscordButton.BackgroundTransparency = 0
+DiscordButton.BorderSizePixel = 0
+DiscordButton.ZIndex = 2
+DiscordButton.Parent = Content
+
+local DiscordCorner = Instance.new("UICorner")
+DiscordCorner.CornerRadius = UDim.new(0, 5)
+DiscordCorner.Parent = DiscordButton
+
+local function copyToClipboard(text)
+    if setclipboard then
+        setclipboard(text)
+    elseif toclipboard then
+        toclipboard(text)
+    else
+        pcall(function()
+            local VirtualUser = game:GetService("VirtualUser")
+            VirtualUser:ClickButton2(Vector2.new(0, 0))
+        end)
+    end
+end
+
+DiscordButton.MouseEnter:Connect(function()
+    TweenService:Create(DiscordButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(210, 40, 40)}):Play()
+end)
+
+DiscordButton.MouseLeave:Connect(function()
+    TweenService:Create(DiscordButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(170, 0, 0)}):Play()
+end)
+
+DiscordButton.MouseButton1Click:Connect(function()
+    copyToClipboard("https://discord.gg/DdmrBFcCU")
+    local originalText = DiscordButton.Text
+    DiscordButton.Text = "✓ COPIADO!"
+    task.wait(1)
+    DiscordButton.Text = originalText
+end)
+
+-- ==================== FPS + PING COUNTER ====================
+local lastFPS = 0
+local frameCount = 0
+local lastTime = tick()
+RunService.RenderStepped:Connect(function()
+    frameCount = frameCount + 1
+    if tick() - lastTime >= 1 then
+        lastFPS = frameCount
+        frameCount = 0
+        lastTime = tick()
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    local ping = math.floor(player:GetNetworkPing() * 1000)
+    StatsLabel.Text = string.format("FPS: %02d | %03dms", lastFPS, ping)
+end)
+
+-- ==================== ZERO GRAVITY ====================
+local GRAVITY_MULTIPLIER = 0.4
+local originalGravity = workspace.Gravity
+local counterForce = (1 - GRAVITY_MULTIPLIER) * originalGravity * 0.52
+local zeroGravityConnection = nil
+
+local function applyLowGravity()
+    if not _G.zeroGravityEnabled then return end
+    local character = player.Character
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local velocity = root.AssemblyLinearVelocity
+    root.AssemblyLinearVelocity = Vector3.new(velocity.X, velocity.Y + counterForce * 0.016, velocity.Z)
+end
+
+local function startZeroGravity()
+    if zeroGravityConnection then zeroGravityConnection:Disconnect() end
+    zeroGravityConnection = RunService.Heartbeat:Connect(applyLowGravity)
+end
+
+local function stopZeroGravity()
+    if zeroGravityConnection then
+        zeroGravityConnection:Disconnect()
+        zeroGravityConnection = nil
+    end
+end
+
+if _G.zeroGravityEnabled then
+    startZeroGravity()
+end
+
+player.CharacterAdded:Connect(function(newChar)
+    task.wait(0.8)
+    if _G.zeroGravityEnabled then
+        startZeroGravity()
+    end
+end)
+
+-- ==================== CORE LOGIC ====================
+local sliderValue = 0.91
+local manualOverride = true
+local triggerBump = false
+local activeTriggers = {}
+local sliderDragging = false
+
+local function updateSlider(x)
+    local trackPos = SliderTrack.AbsolutePosition.X
+    local trackSize = SliderTrack.AbsoluteSize.X
+    local percent = math.clamp((x - trackPos) / trackSize, 0, 1)
+    manualOverride = true
+    sliderValue = percent
+    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
+    SliderKnob.Position = UDim2.new(percent, 0, 0.5, 0)
+    TriggerLabel.Text = "TRIGGER: " .. math.floor(percent * 100) .. "%"
+end
+
+SliderKnob.MouseButton1Down:Connect(function() sliderDragging = true end)
+SliderTrack.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        sliderDragging = true
+        updateSlider(inp.Position.X)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(inp)
+    if sliderDragging and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(inp.Position.X)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not manualOverride then
+        local base = 0.91
+        sliderValue = triggerBump and (base + 0.015) or base
+        SliderFill.Size = UDim2.new(sliderValue, 0, 1, 0)
+        SliderKnob.Position = UDim2.new(sliderValue, 0, 0.5, 0)
+        TriggerLabel.Text = "TRIGGER: " .. math.floor(sliderValue * 100) .. "%"
+    end
+end)
+
+local function lookUp58()
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    local currentCF = camera.CFrame
+    local pitch = math.rad(28.4)
+    local newLookVector = Vector3.new(currentCF.LookVector.X, math.sin(pitch), currentCF.LookVector.Z)
+    camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + newLookVector)
+end
+
+AlignButton.MouseButton1Click:Connect(function()
+    _G.alignCameraEnabled = not _G.alignCameraEnabled
+    local isOn = _G.alignCameraEnabled
+    local btnLabel = AlignButton:FindFirstChildWhichIsA("TextLabel")
+    if btnLabel then btnLabel.Text = "ALIGN CAM" end
+    Config.alignCameraEnabled = isOn
+    saveConfig()
+    if isOn then lookUp58() end
+end)
+
+-- Core Prompt Logic
+ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+    if not _G.flashEnabled and not _G.giantEnabled then return end
+    if activeTriggers[prompt] then return end
+    activeTriggers[prompt] = true
+    local startTime = os.clock()
+    local fired = false
+    StealFill.Size = UDim2.new(0, 0, 1, 0)
+   
+    local connection
+    connection = RunService.PreRender:Connect(function()
+        if not prompt or not prompt.Parent then
+            connection:Disconnect()
+            activeTriggers[prompt] = nil
+            return
+        end
+        local progress = math.clamp((os.clock() - startTime) / prompt.HoldDuration, 0, 1)
+        StealFill.Size = UDim2.new(progress, 0, 1, 0)
+       
+        if not fired and progress >= sliderValue then
+            fired = true
+            connection:Disconnect()
+            activeTriggers[prompt] = nil
+            triggerBump = not triggerBump
+           
+            local char = player.Character
+            if not char then return end
+            local backpack = player:FindFirstChild("Backpack")
+           
+            if _G.flashEnabled then
+                local flash = char:FindFirstChild("Flash Teleport") or (backpack and backpack:FindFirstChild("Flash Teleport"))
+                if flash then
+                    flash.Parent = char
+                    task.spawn(function() flash:Activate() task.wait(0.08) end)
+                end
+            end
+            if _G.giantEnabled then
+                local giant = char:FindFirstChild("Giant Potion") or (backpack and backpack:FindFirstChild("Giant Potion"))
+                if giant then
+                    giant.Parent = char
+                    task.spawn(function() giant:Activate() end)
+                end
+            end
+           
+            task.delay(0.25, function()
+                TweenService:Create(StealFill, TweenInfo.new(0.35, Enum.EasingStyle.Quad), {Size = UDim2.new(0,0,1,0)}):Play()
+            end)
+        end
+    end)
+   
+    prompt.PromptButtonHoldEnded:Connect(function()
+        if not fired then
+            connection:Disconnect()
+            activeTriggers[prompt] = nil
+            TweenService:Create(StealFill, TweenInfo.new(0.3), {Size = UDim2.new(0,0,1,0)}):Play()
+        end
+    end)
+end)
+
+-- Iniciar speed si estaba activada
+if speedEnabled then
+    startSpeed()
+end
+
+print("✅ nuko175 Flash TP Loaded | Speed: " .. SPEED)
+print("✅ nuko175 - Discord actualizado: https://discord.gg/DdmrBFcCU")
