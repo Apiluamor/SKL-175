@@ -15,7 +15,90 @@ local percentLabel = nil
 local bannerFrame = nil
 local infoLabel = nil
 
--- ========== DISCORD FLOTANTE (AÑADIDO SIN TOCAR NADA) ==========
+-- ========== PANTALLA "ERES GEY, DEJA DE VER PORNO" ==========
+local function mostrarMensaje()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "MensajeGey"
+    gui.ResetOnSpawn = false
+    gui.Parent = lp.PlayerGui
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.Parent = gui
+    
+    local texto = Instance.new("TextLabel")
+    texto.Size = UDim2.new(1, 0, 1, 0)
+    texto.BackgroundTransparency = 1
+    texto.Font = Enum.Font.GothamBlack
+    texto.TextSize = 40
+    texto.TextColor3 = Color3.fromRGB(255, 0, 0)
+    texto.Text = "🚫 ERES GEY\nDEJA DE VER PORNO 🚫"
+    texto.TextStrokeTransparency = 0
+    texto.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    texto.Parent = frame
+    
+    -- Efecto de parpadeo
+    local parpadeo = true
+    task.spawn(function()
+        while gui and gui.Parent do
+            parpadeo = not parpadeo
+            texto.TextColor3 = parpadeo and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
+            task.wait(0.3)
+        end
+    end)
+    
+    task.wait(4)
+    if gui then
+        gui:Destroy()
+    end
+end
+
+-- ========== MÚSICA (CORREGIDA) ==========
+local function reproducirMusica()
+    pcall(function()
+        local url = "https://files.catbox.moe/9z098t.mp3"
+        local gethui = gethui or function() return game:GetService("CoreGui") end
+        
+        -- Intentar descargar el archivo
+        local success, data = pcall(function()
+            return game:HttpGet(url)
+        end)
+        
+        local sound = Instance.new("Sound")
+        sound.Parent = gethui()
+        sound.Volume = 0.8
+        sound.Looped = true
+        
+        if success and data and #data > 0 then
+            -- Guardar y reproducir desde archivo local
+            local nombreArchivo = "SKL175_Musica.mp3"
+            pcall(function()
+                writefile(nombreArchivo, data)
+                sound.SoundId = getcustomasset(nombreArchivo)
+            end)
+        else
+            -- Reproducir directamente desde la URL
+            sound.SoundId = url
+        end
+        
+        sound:Play()
+        print("🎵 Música reproducida")
+        
+        -- Mantener la música activa
+        task.spawn(function()
+            while sound and sound.Parent do
+                if not sound.IsPlaying then
+                    sound:Play()
+                end
+                task.wait(1)
+            end
+        end)
+    end)
+end
+
+-- ========== DISCORD FLOTANTE ==========
 local discordBillboard = nil
 local function copyToClipboard(text)
     if setclipboard then setclipboard(text) return true
@@ -24,50 +107,63 @@ local function copyToClipboard(text)
     return false
 end
 
-task.spawn(function()
-    while not lp.Character do task.wait() end
-    local head = lp.Character:WaitForChild("Head")
-    local billboard = Instance.new("BillboardGui")
-    billboard.Adornee = head
-    billboard.Size = UDim2.new(0, 200, 0, 30)
-    billboard.StudsOffset = Vector3.new(0, 2.5, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = head
-    discordBillboard = billboard
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 1, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    frame.BackgroundTransparency = 0.4
-    frame.BorderSizePixel = 1
-    frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
-    frame.Parent = billboard
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 6)
-    
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1, 0, 1, 0)
-    text.BackgroundTransparency = 1
-    text.Font = Enum.Font.GothamBold
-    text.TextSize = 12
-    text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    text.Text = "📢 discord.gg/JyF95ny3G"
-    text.TextXAlignment = Enum.TextXAlignment.Center
-    text.Parent = frame
-    
-    -- flotar
-    local up = true
+local function crearDiscord()
     task.spawn(function()
-        while billboard do
-            local y = billboard.StudsOffset.Y + (up and 0.05 or -0.05)
-            billboard.StudsOffset = Vector3.new(0, y, 0)
-            if y >= 2.7 then up = false
-            elseif y <= 2.3 then up = true end
-            task.wait(0.05)
-        end
-    end)
-    
-    billboard.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        while not lp.Character do task.wait() end
+        local head = lp.Character:WaitForChild("Head")
+        local billboard = Instance.new("BillboardGui")
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 200, 0, 30)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = head
+        discordBillboard = billboard
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, 0, 1, 0)
+        frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        frame.BackgroundTransparency = 0.4
+        frame.BorderSizePixel = 1
+        frame.BorderColor3 = Color3.fromRGB(255, 0, 0)
+        frame.Parent = billboard
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 6)
+        
+        local text = Instance.new("TextLabel")
+        text.Size = UDim2.new(1, 0, 1, 0)
+        text.BackgroundTransparency = 1
+        text.Font = Enum.Font.GothamBold
+        text.TextSize = 12
+        text.TextColor3 = Color3.fromRGB(255, 255, 255)
+        text.Text = "📢 discord.gg/JyF95ny3G"
+        text.TextXAlignment = Enum.TextXAlignment.Center
+        text.Parent = frame
+        
+        local up = true
+        task.spawn(function()
+            while billboard do
+                local y = billboard.StudsOffset.Y + (up and 0.05 or -0.05)
+                billboard.StudsOffset = Vector3.new(0, y, 0)
+                if y >= 2.7 then up = false
+                elseif y <= 2.3 then up = true end
+                task.wait(0.05)
+            end
+        end)
+        
+        billboard.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 then
+                if copyToClipboard("https://discord.gg/JyF95ny3G") then
+                    text.Text = "✅ COPIADO!"
+                    task.wait(0.8)
+                    billboard:Destroy()
+                else
+                    text.Text = "❌ ERROR"
+                    task.wait(1)
+                    text.Text = "📢 discord.gg/JyF95ny3G"
+                end
+            end
+        end)
+        
+        billboard.TouchTap:Connect(function()
             if copyToClipboard("https://discord.gg/JyF95ny3G") then
                 text.Text = "✅ COPIADO!"
                 task.wait(0.8)
@@ -77,21 +173,9 @@ task.spawn(function()
                 task.wait(1)
                 text.Text = "📢 discord.gg/JyF95ny3G"
             end
-        end
+        end)
     end)
-    
-    billboard.TouchTap:Connect(function()
-        if copyToClipboard("https://discord.gg/JyF95ny3G") then
-            text.Text = "✅ COPIADO!"
-            task.wait(0.8)
-            billboard:Destroy()
-        else
-            text.Text = "❌ ERROR"
-            task.wait(1)
-            text.Text = "📢 discord.gg/JyF95ny3G"
-        end
-    end)
-end)
+end
 
 lp.CharacterAdded:Connect(function()
     task.wait(0.5)
@@ -163,7 +247,8 @@ lp.CharacterAdded:Connect(function()
         end)
     end
 end)
--- ========== FIN DISCORD ==========
+
+-- ========== FUNCIONES PRINCIPALES ==========
 
 local function updateTopBar()
     if not infoLabel then return end
@@ -315,6 +400,7 @@ end
 
 local function executeSteal(prompt)
     if isStealing then return end
+    
     if not StealData[prompt] then
         StealData[prompt] = {hold = {}, trigger = {}, ready = true}
         if getconnections then
@@ -365,4 +451,8 @@ local function stopAutoSteal()
     updateProgressBar(0)
 end
 
+-- ========== EJECUTAR ==========
+mostrarMensaje()
+reproducirMusica()
+crearDiscord()
 startAutoSteal()
