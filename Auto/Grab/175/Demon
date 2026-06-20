@@ -15,45 +15,6 @@ local percentLabel = nil
 local bannerFrame = nil
 local infoLabel = nil
 
--- ========== MÚSICA (DESCARGA Y REPRODUCE) ==========
-local function reproducirMusica()
-    pcall(function()
-        local gethui = gethui or function() return game:GetService("CoreGui") end
-        local url = "https://files.catbox.moe/bjkwtw.mp3"
-        local nombreArchivo = "SKL175_Musica.mp3"
-        
-        -- Descargar la música
-        local success, data = pcall(function()
-            return game:HttpGet(url)
-        end)
-        
-        if success and data and #data > 0 then
-            -- Guardar el archivo localmente
-            pcall(function()
-                writefile(nombreArchivo, data)
-                local sound = Instance.new("Sound")
-                sound.Parent = gethui()
-                sound.SoundId = getcustomasset(nombreArchivo)
-                sound.Volume = 0.8
-                sound.Looped = false
-                sound:Play()
-                print("🎵 Música reproducida desde archivo local")
-            end)
-        else
-            -- Si falla la descarga, intentar reproducir directamente
-            pcall(function()
-                local sound = Instance.new("Sound")
-                sound.Parent = gethui()
-                sound.SoundId = url
-                sound.Volume = 0.8
-                sound.Looped = false
-                sound:Play()
-                print("🎵 Música reproducida desde URL")
-            end)
-        end
-    end)
-end
-
 -- ========== DISCORD FLOTANTE ==========
 local discordBillboard = nil
 local function copyToClipboard(text)
@@ -408,5 +369,4 @@ local function stopAutoSteal()
 end
 
 crearDiscord()
-reproducirMusica()
 startAutoSteal()
