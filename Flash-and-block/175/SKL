@@ -285,38 +285,4 @@ end
 discBtn.MouseButton1Click:Connect(copyDiscord)
 discBtn.TouchTap:Connect(copyDiscord)
 
--- botón cerrar (X)
-local close = Instance.new("TextButton")
-close.AnchorPoint = Vector2.new(1, 0)
-close.Position = UDim2.new(1, -16, 0, 16)
-close.Size = UDim2.fromOffset(36, 36)
-close.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-close.Text = "X"
-close.Font = Enum.Font.GothamBold
-close.TextSize = 16
-close.TextColor3 = Color3.fromRGB(220, 220, 220)
-close.BackgroundTransparency = 0.3
-close.Parent = sg
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
-
-close.MouseButton1Click:Connect(function()
-    TweenService:Create(bg, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
-    for _, ch in ipairs(sg:GetDescendants()) do
-        if ch:IsA("TextLabel") or ch:IsA("TextButton") then
-            pcall(function()
-                TweenService:Create(ch, TweenInfo.new(0.35), { TextTransparency = 1 }):Play()
-            end)
-        end
-        if ch:IsA("Frame") and ch ~= bg then
-            pcall(function()
-                TweenService:Create(ch, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
-            end)
-        end
-    end
-    task.delay(0.5, function()
-        pcall(function() if music then music:Stop(); music:Destroy() end end)
-        pcall(function() sg:Destroy() end)
-    end)
-end)
-
 print("[175] Intro paywall cargado")
