@@ -1,6 +1,7 @@
 --[[
-  175 INTRO - Script Pagable
-  Pantalla negra + texto EN/ES + Discord animado + música
+  175 CINEMATIC EDIT  (~60s)
+  Música: https://files.catbox.moe/n2zug9.mp3
+  Discord: https://discord.gg/WWDM76W3dc  (tap = copy)
 ]]
 
 local Players = game:GetService("Players")
@@ -12,311 +13,316 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local DISCORD = "https://discord.gg/WWDM76W3dc"
 local MUSIC_URL = "https://files.catbox.moe/n2zug9.mp3"
+local DURATION = 60
 
--- limpiar intro anterior
 pcall(function()
-    local old = PlayerGui:FindFirstChild("175_PaywallIntro")
+    local old = PlayerGui:FindFirstChild("175_CinematicEdit")
     if old then old:Destroy() end
     if gethui then
-        local h = gethui()
-        local o = h and h:FindFirstChild("175_PaywallIntro")
+        local o = gethui():FindFirstChild("175_CinematicEdit")
         if o then o:Destroy() end
     end
 end)
 
+local function tween(obj, t, props, style, dir)
+    local ti = TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out)
+    local tw = TweenService:Create(obj, ti, props)
+    tw:Play()
+    return tw
+end
+
 local function playMusic()
     local sound = Instance.new("Sound")
-    sound.Name = "175_IntroMusic"
-    sound.Volume = 0.7
+    sound.Name = "175_EditMusic"
+    sound.Volume = 0
     sound.Looped = true
     sound.Parent = SoundService
     local ok = false
     pcall(function()
-        if getcustomasset and writefile and request then
-            local res = request({ Url = MUSIC_URL, Method = "GET" })
-            local body = res and (res.Body or res.body)
-            if body and #tostring(body) > 1000 then
-                writefile("175_intro_music.mp3", body)
-                sound.SoundId = getcustomasset("175_intro_music.mp3")
-                ok = true
+        if getcustomasset and writefile then
+            local req = (syn and syn.request) or (http and http.request) or http_request or request
+            if req then
+                local res = req({ Url = MUSIC_URL, Method = "GET" })
+                local body = res and (res.Body or res.body)
+                if body and #tostring(body) > 1000 then
+                    writefile("175_edit_music.mp3", body)
+                    sound.SoundId = getcustomasset("175_edit_music.mp3")
+                    ok = true
+                end
             end
         end
     end)
-    if not ok then
-        pcall(function()
-            sound.SoundId = MUSIC_URL
-        end)
-    end
+    if not ok then pcall(function() sound.SoundId = MUSIC_URL end) end
     pcall(function() sound:Play() end)
+    tween(sound, 2.5, { Volume = 0.85 })
     return sound
 end
 
 local music = playMusic()
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "175_PaywallIntro"
+sg.Name = "175_CinematicEdit"
 sg.IgnoreGuiInset = true
 sg.ResetOnSpawn = false
-sg.DisplayOrder = 100000
-sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+sg.DisplayOrder = 100001
 pcall(function()
     if gethui then sg.Parent = gethui() else sg.Parent = PlayerGui end
 end)
 if not sg.Parent then sg.Parent = PlayerGui end
 
--- fondo negro
+-- capas
 local bg = Instance.new("Frame")
-bg.Name = "Black"
 bg.Size = UDim2.fromScale(1, 1)
-bg.Position = UDim2.fromScale(0, 0)
 bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 bg.BackgroundTransparency = 1
 bg.BorderSizePixel = 0
 bg.Parent = sg
 
--- fade in negro
-TweenService:Create(bg, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-    BackgroundTransparency = 0
-}):Play()
+local flash = Instance.new("Frame")
+flash.Size = UDim2.fromScale(1, 1)
+flash.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+flash.BackgroundTransparency = 1
+flash.BorderSizePixel = 0
+flash.ZIndex = 50
+flash.Parent = sg
 
--- partículas / puntos suaves
-local dotsFolder = Instance.new("Folder")
-dotsFolder.Name = "Dots"
-dotsFolder.Parent = sg
-for i = 1, 18 do
+local redVeil = Instance.new("Frame")
+redVeil.Size = UDim2.fromScale(1, 1)
+redVeil.BackgroundColor3 = Color3.fromRGB(120, 0, 20)
+redVeil.BackgroundTransparency = 1
+redVeil.BorderSizePixel = 0
+redVeil.ZIndex = 5
+redVeil.Parent = sg
+
+-- letterbox
+local barTop = Instance.new("Frame")
+barTop.Size = UDim2.new(1, 0, 0, 0)
+barTop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+barTop.BorderSizePixel = 0
+barTop.ZIndex = 40
+barTop.Parent = sg
+local barBot = Instance.new("Frame")
+barBot.AnchorPoint = Vector2.new(0, 1)
+barBot.Position = UDim2.fromScale(0, 1)
+barBot.Size = UDim2.new(1, 0, 0, 0)
+barBot.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+barBot.BorderSizePixel = 0
+barBot.ZIndex = 40
+barBot.Parent = sg
+
+-- partículas
+local dots = Instance.new("Folder", sg)
+for i = 1, 28 do
     local d = Instance.new("Frame")
-    d.Size = UDim2.fromOffset(3, 3)
+    d.Size = UDim2.fromOffset(math.random(2, 5), math.random(2, 5))
     d.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    d.BackgroundColor3 = Color3.fromRGB(255, 40 + math.random(0, 40), 60)
-    d.BackgroundTransparency = 0.4 + math.random() * 0.4
+    d.BackgroundColor3 = Color3.fromRGB(255, 40 + math.random(0, 50), 70)
+    d.BackgroundTransparency = 0.5
     d.BorderSizePixel = 0
-    d.Parent = dotsFolder
+    d.ZIndex = 6
+    d.Parent = dots
     Instance.new("UICorner", d).CornerRadius = UDim.new(1, 0)
     task.spawn(function()
         while d.Parent do
-            local t = TweenService:Create(d, TweenInfo.new(2 + math.random() * 3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            local tw = tween(d, 1.5 + math.random() * 2.5, {
                 Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundTransparency = 0.3 + math.random() * 0.5
-            })
-            t:Play()
-            t.Completed:Wait()
+                BackgroundTransparency = 0.2 + math.random() * 0.6,
+                Size = UDim2.fromOffset(math.random(2, 7), math.random(2, 7))
+            }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            tw.Completed:Wait()
         end
     end)
 end
 
--- contenedor centro
-local center = Instance.new("Frame")
-center.AnchorPoint = Vector2.new(0.5, 0.5)
-center.Position = UDim2.fromScale(0.5, 0.5)
-center.Size = UDim2.new(0, 340, 0, 280)
-center.BackgroundTransparency = 1
-center.Parent = sg
+-- textos central
+local function makeLabel(text, size, y, color)
+    local l = Instance.new("TextLabel")
+    l.AnchorPoint = Vector2.new(0.5, 0.5)
+    l.Position = UDim2.new(0.5, 0, y, 0)
+    l.Size = UDim2.new(0.9, 0, 0, size + 10)
+    l.BackgroundTransparency = 1
+    l.Text = text
+    l.Font = Enum.Font.GothamBlack
+    l.TextSize = size
+    l.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    l.TextTransparency = 1
+    l.TextStrokeTransparency = 0.7
+    l.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    l.ZIndex = 20
+    l.Parent = sg
+    return l
+end
 
--- título
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 36)
-title.Position = UDim2.new(0, 0, 0, 10)
-title.BackgroundTransparency = 1
-title.Text = "175  ·  PREMIUM"
-title.Font = Enum.Font.GothamBlack
-title.TextSize = 28
-title.TextColor3 = Color3.fromRGB(255, 70, 90)
-title.TextTransparency = 1
-title.Parent = center
+local t1 = makeLabel("175", 72, 0.42, Color3.fromRGB(255, 55, 75))
+local t2 = makeLabel("PREMIUM  ·  EDIT", 22, 0.52, Color3.fromRGB(255, 200, 210))
+local t3 = makeLabel("", 18, 0.60, Color3.fromRGB(220, 220, 230))
+local t4 = makeLabel("", 14, 0.68, Color3.fromRGB(180, 180, 190))
 
--- línea decorativa
-local line = Instance.new("Frame")
-line.AnchorPoint = Vector2.new(0.5, 0)
-line.Position = UDim2.new(0.5, 0, 0, 52)
-line.Size = UDim2.new(0, 0, 0, 2)
-line.BackgroundColor3 = Color3.fromRGB(220, 40, 60)
-line.BorderSizePixel = 0
-line.Parent = center
+-- discord btn
+local disc = Instance.new("TextButton")
+disc.AnchorPoint = Vector2.new(0.5, 0.5)
+disc.Position = UDim2.new(0.5, 0, 0.78, 0)
+disc.Size = UDim2.new(0, 260, 0, 44)
+disc.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+disc.BackgroundTransparency = 1
+disc.Text = ""
+disc.ZIndex = 25
+disc.Parent = sg
+Instance.new("UICorner", disc).CornerRadius = UDim.new(0, 10)
+local discL = Instance.new("TextLabel")
+discL.Size = UDim2.fromScale(1, 1)
+discL.BackgroundTransparency = 1
+discL.Text = "discord.gg/WWDM76W3dc"
+discL.Font = Enum.Font.GothamBold
+discL.TextSize = 14
+discL.TextColor3 = Color3.fromRGB(255, 255, 255)
+discL.TextTransparency = 1
+discL.ZIndex = 26
+discL.Parent = disc
 
--- EN
-local en = Instance.new("TextLabel")
-en.Size = UDim2.new(1, -20, 0, 44)
-en.Position = UDim2.new(0, 10, 0, 70)
-en.BackgroundTransparency = 1
-en.Text = "This script is PAID / PAYABLE.\nContact us on Discord to purchase."
-en.Font = Enum.Font.Gotham
-en.TextSize = 14
-en.TextColor3 = Color3.fromRGB(230, 230, 235)
-en.TextTransparency = 1
-en.TextWrapped = true
-en.Parent = center
-
--- ES
-local es = Instance.new("TextLabel")
-es.Size = UDim2.new(1, -20, 0, 44)
-es.Position = UDim2.new(0, 10, 0, 118)
-es.BackgroundTransparency = 1
-es.Text = "Este script es PAGABLE / DE PAGO.\nContacta por Discord para comprarlo."
-es.Font = Enum.Font.Gotham
-es.TextSize = 14
-es.TextColor3 = Color3.fromRGB(200, 200, 210)
-es.TextTransparency = 1
-es.TextWrapped = true
-es.Parent = center
-
--- Discord botón
-local discBtn = Instance.new("TextButton")
-discBtn.AnchorPoint = Vector2.new(0.5, 0)
-discBtn.Position = UDim2.new(0.5, 0, 0, 175)
-discBtn.Size = UDim2.new(0, 280, 0, 48)
-discBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-discBtn.Text = ""
-discBtn.AutoButtonColor = true
-discBtn.BackgroundTransparency = 1
-discBtn.Parent = center
-Instance.new("UICorner", discBtn).CornerRadius = UDim.new(0, 12)
-
-local discStroke = Instance.new("UIStroke")
-discStroke.Color = Color3.fromRGB(255, 255, 255)
-discStroke.Thickness = 1.5
-discStroke.Transparency = 0.4
-discStroke.Parent = discBtn
-
-local discGrad = Instance.new("UIGradient")
-discGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(114, 137, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(88, 101, 242)),
-})
-discGrad.Parent = discBtn
-
-local discLabel = Instance.new("TextLabel")
-discLabel.Size = UDim2.fromScale(1, 1)
-discLabel.BackgroundTransparency = 1
-discLabel.Text = "discord.gg/WWDM76W3dc"
-discLabel.Font = Enum.Font.GothamBold
-discLabel.TextSize = 15
-discLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-discLabel.TextTransparency = 1
-discLabel.Parent = discBtn
-
-local hint = Instance.new("TextLabel")
-hint.Size = UDim2.new(1, 0, 0, 20)
-hint.Position = UDim2.new(0, 0, 0, 230)
-hint.BackgroundTransparency = 1
-hint.Text = "Tap to copy  ·  Toca para copiar"
-hint.Font = Enum.Font.Gotham
-hint.TextSize = 11
-hint.TextColor3 = Color3.fromRGB(160, 160, 170)
-hint.TextTransparency = 1
-hint.Parent = center
-
--- animaciones entrada
-task.delay(0.5, function()
-    TweenService:Create(title, TweenInfo.new(0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        TextTransparency = 0
-    }):Play()
-    TweenService:Create(line, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 160, 0, 2)
-    }):Play()
-end)
-task.delay(0.9, function()
-    TweenService:Create(en, TweenInfo.new(0.6), { TextTransparency = 0 }):Play()
-end)
-task.delay(1.2, function()
-    TweenService:Create(es, TweenInfo.new(0.6), { TextTransparency = 0 }):Play()
-end)
-task.delay(1.5, function()
-    TweenService:Create(discBtn, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0
-    }):Play()
-    TweenService:Create(discLabel, TweenInfo.new(0.5), { TextTransparency = 0 }):Play()
-    TweenService:Create(hint, TweenInfo.new(0.5), { TextTransparency = 0 }):Play()
-end)
-
--- pulse botón discord
-task.spawn(function()
-    task.wait(2)
-    while discBtn.Parent do
-        local t1 = TweenService:Create(discBtn, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Size = UDim2.new(0, 292, 0, 52)
-        })
-        t1:Play(); t1.Completed:Wait()
-        local t2 = TweenService:Create(discBtn, TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-            Size = UDim2.new(0, 280, 0, 48)
-        })
-        t2:Play(); t2.Completed:Wait()
-    end
-end)
-
--- brillo stroke rotativo simulado
-task.spawn(function()
-    task.wait(1.6)
-    while discStroke.Parent do
-        for a = 0.2, 0.7, 0.05 do
-            if not discStroke.Parent then break end
-            discStroke.Transparency = a
-            task.wait(0.04)
-        end
-        for a = 0.7, 0.2, -0.05 do
-            if not discStroke.Parent then break end
-            discStroke.Transparency = a
-            task.wait(0.04)
-        end
-    end
-end)
-
--- copiar discord al tocar
-local function copyDiscord()
-    local copied = false
+local function copyDisc()
     pcall(function()
-        if setclipboard then
-            setclipboard(DISCORD)
-            copied = true
-        elseif toclipboard then
-            toclipboard(DISCORD)
-            copied = true
-        end
+        if setclipboard then setclipboard(DISCORD)
+        elseif toclipboard then toclipboard(DISCORD) end
     end)
-    discLabel.Text = copied and "COPIED!  ·  ¡COPIADO!" or DISCORD
-    discBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 100)
-    task.delay(1.4, function()
-        if discLabel and discLabel.Parent then
-            discLabel.Text = "discord.gg/WWDM76W3dc"
-            discBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    discL.Text = "COPIED  ·  COPIADO"
+    disc.BackgroundColor3 = Color3.fromRGB(50, 170, 90)
+    task.delay(1.2, function()
+        if discL.Parent then
+            discL.Text = "discord.gg/WWDM76W3dc"
+            disc.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         end
     end)
 end
+disc.MouseButton1Click:Connect(copyDisc)
+pcall(function() disc.TouchTap:Connect(copyDisc) end)
 
-discBtn.MouseButton1Click:Connect(copyDiscord)
-discBtn.TouchTap:Connect(copyDiscord)
+local function whiteFlash(t)
+    flash.BackgroundTransparency = 0.15
+    tween(flash, t or 0.35, { BackgroundTransparency = 1 })
+end
 
--- botón cerrar (X)
-local close = Instance.new("TextButton")
-close.AnchorPoint = Vector2.new(1, 0)
-close.Position = UDim2.new(1, -16, 0, 16)
-close.Size = UDim2.fromOffset(36, 36)
-close.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-close.Text = "X"
-close.Font = Enum.Font.GothamBold
-close.TextSize = 16
-close.TextColor3 = Color3.fromRGB(220, 220, 220)
-close.BackgroundTransparency = 0.3
-close.Parent = sg
-Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
+local function showText(label, waitIn, hold, waitOut)
+    tween(label, waitIn or 0.6, { TextTransparency = 0 }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    task.wait(hold or 2)
+    tween(label, waitOut or 0.5, { TextTransparency = 1 })
+    task.wait(waitOut or 0.5)
+end
 
-close.MouseButton1Click:Connect(function()
-    TweenService:Create(bg, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
-    for _, ch in ipairs(sg:GetDescendants()) do
-        if ch:IsA("TextLabel") or ch:IsA("TextButton") then
-            pcall(function()
-                TweenService:Create(ch, TweenInfo.new(0.35), { TextTransparency = 1 }):Play()
-            end)
-        end
-        if ch:IsA("Frame") and ch ~= bg then
-            pcall(function()
-                TweenService:Create(ch, TweenInfo.new(0.35), { BackgroundTransparency = 1 }):Play()
-            end)
-        end
+local function glitchTitle()
+    for i = 1, 6 do
+        t1.Position = UDim2.new(0.5, math.random(-12, 12), 0.42, math.random(-6, 6))
+        t1.TextColor3 = (i % 2 == 0) and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 40, 60)
+        task.wait(0.05)
     end
-    task.delay(0.5, function()
-        pcall(function() if music then music:Stop(); music:Destroy() end end)
-        pcall(function() sg:Destroy() end)
+    t1.Position = UDim2.new(0.5, 0, 0.42, 0)
+    t1.TextColor3 = Color3.fromRGB(255, 55, 75)
+end
+
+-- ========== TIMELINE ~60s ==========
+task.spawn(function()
+    -- 0-3s: fade negro + letterbox
+    tween(bg, 1.2, { BackgroundTransparency = 0 })
+    task.wait(0.4)
+    tween(barTop, 1, { Size = UDim2.new(1, 0, 0, 70) })
+    tween(barBot, 1, { Size = UDim2.new(1, 0, 0, 70) })
+    task.wait(1.2)
+
+    -- 3-8s: 175 aparece
+    whiteFlash(0.4)
+    tween(t1, 0.8, { TextTransparency = 0 }, Enum.EasingStyle.Back)
+    task.wait(1.5)
+    glitchTitle()
+    task.wait(0.8)
+    tween(t2, 0.6, { TextTransparency = 0 })
+    task.wait(2.2)
+    tween(t2, 0.4, { TextTransparency = 1 })
+
+    -- 8-16s: textos bilingües
+    t3.Text = "THIS SCRIPT IS PAID"
+    showText(t3, 0.5, 2.2, 0.4)
+    t3.Text = "ESTE SCRIPT ES PAGABLE"
+    showText(t3, 0.5, 2.2, 0.4)
+
+    -- 16-24s: red pulse + hype
+    tween(redVeil, 0.8, { BackgroundTransparency = 0.72 })
+    whiteFlash(0.3)
+    t3.Text = "JOIN THE SERVER"
+    tween(t3, 0.5, { TextTransparency = 0 })
+    t4.Text = "ÚNETE AL DISCORD"
+    tween(t4, 0.5, { TextTransparency = 0 })
+    task.wait(2.5)
+    tween(t3, 0.4, { TextTransparency = 1 })
+    tween(t4, 0.4, { TextTransparency = 1 })
+    tween(redVeil, 0.6, { BackgroundTransparency = 1 })
+
+    -- 24-32s: discord entra
+    whiteFlash(0.25)
+    tween(disc, 0.7, { BackgroundTransparency = 0 }, Enum.EasingStyle.Back)
+    tween(discL, 0.7, { TextTransparency = 0 })
+    task.spawn(function()
+        for _ = 1, 4 do
+            if not disc.Parent then break end
+            tween(disc, 0.7, { Size = UDim2.new(0, 275, 0, 48) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            task.wait(0.7)
+            tween(disc, 0.7, { Size = UDim2.new(0, 260, 0, 44) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            task.wait(0.7)
+        end
     end)
+    t4.Text = "TAP TO COPY  ·  TOCA PARA COPIAR"
+    tween(t4, 0.5, { TextTransparency = 0 })
+    task.wait(5)
+    tween(t4, 0.4, { TextTransparency = 1 })
+
+    -- 32-42s: frases de hype
+    local lines = {
+        { "FLASH  ·  BLOCK  ·  RESET", "EL MEJOR HUB" },
+        { "175 ON TOP", "ALWAYS WINNING" },
+        { "NO FREE SCRIPTS", "SOLO PREMIUM" },
+        { "BUY IT ON DISCORD", "CÓMPRALO EN DISCORD" },
+    }
+    for _, pair in ipairs(lines) do
+        whiteFlash(0.2)
+        t3.Text = pair[1]
+        t4.Text = pair[2]
+        tween(t3, 0.4, { TextTransparency = 0 })
+        tween(t4, 0.4, { TextTransparency = 0 })
+        task.wait(2.0)
+        tween(t3, 0.35, { TextTransparency = 1 })
+        tween(t4, 0.35, { TextTransparency = 1 })
+        task.wait(0.25)
+    end
+
+    -- 42-50s: glitch + big 175
+    tween(redVeil, 0.5, { BackgroundTransparency = 0.65 })
+    glitchTitle()
+    whiteFlash(0.5)
+    t2.Text = "ANOMALY  ·  175"
+    tween(t2, 0.5, { TextTransparency = 0 })
+    task.wait(3)
+    tween(t2, 0.5, { TextTransparency = 1 })
+    tween(redVeil, 0.6, { BackgroundTransparency = 1 })
+
+    -- 50-58s: final message
+    t3.Text = "THANKS FOR WATCHING"
+    t4.Text = "GRACIAS POR VER"
+    tween(t3, 0.6, { TextTransparency = 0 })
+    tween(t4, 0.6, { TextTransparency = 0 })
+    task.wait(3.5)
+    tween(t3, 0.5, { TextTransparency = 1 })
+    tween(t4, 0.5, { TextTransparency = 1 })
+
+    -- 58-60s: fade out todo
+    tween(t1, 0.8, { TextTransparency = 1 })
+    tween(disc, 0.8, { BackgroundTransparency = 1 })
+    tween(discL, 0.8, { TextTransparency = 1 })
+    tween(barTop, 0.8, { Size = UDim2.new(1, 0, 0, 0) })
+    tween(barBot, 0.8, { Size = UDim2.new(1, 0, 0, 0) })
+    if music then tween(music, 1.2, { Volume = 0 }) end
+    tween(bg, 1.2, { BackgroundTransparency = 1 })
+    task.wait(1.3)
+    pcall(function() if music then music:Stop(); music:Destroy() end end)
+    pcall(function() sg:Destroy() end)
 end)
 
-print("[175] Intro paywall cargado")
+print("[175] Cinematic Edit ~60s iniciado")
